@@ -3,50 +3,47 @@ from os import path
 import pickle
 import math
 from bitarray import bitarray
+import time
 
 
 class PrimeUtils:
     def __init__(self):
-        self.sieve = [0, 0]
-        self.primes = []
+        self.sieve = bitarray([0, 0])
         self.sieve_file_path = path.join(ROOT_DIR, "build/prime_sieve.txt")
         try:
-            open(self.sieve_file_path, 'rb')
+            open(self.sieve_file_path, 'rb').close()
         except IOError:
             f = open(self.sieve_file_path, 'wb+')
-            pickle.dump((self.primes, self.sieve), f)
+            pickle.dump(self.sieve, f)
             f.close()
 
     def file_stored_prime_sieve_helper(self, n):
         with open(self.sieve_file_path, 'rb') as f:
-            tmp_primes, tmp_sieve = pickle.load(f)
+            tmp_sieve = pickle.load(f)
             if len(tmp_sieve) >= n:
-                return tmp_primes, tmp_sieve
+                return tmp_sieve
             else:
-                tmp_sieve = self.augment_existing_sieve(tmp_sieve, n)
-                tmp_primes = [prime for prime in tmp_sieve if not prime == 0]
+                self.augment_existing_sieve(tmp_sieve, n)
         with open(self.sieve_file_path, 'wb') as f:
-            pickle.dump((tmp_primes, tmp_sieve), f)
-            return tmp_primes, tmp_sieve
+            pickle.dump(tmp_sieve, f)
+            return tmp_sieve
 
     def in_mem_prime_sieve_helper(self, n):
         if len(self.sieve) > n:
-            return self.primes, self.sieve
+            return self.sieve
         else:
-            self.sieve = self.augment_existing_sieve(self.sieve, n)
-            self.primes = [prime for prime in self.sieve if prime != 0]
-            return self.primes, self.sieve
+            self.augment_existing_sieve(self.sieve, n)
+            return self.sieve
 
     def augment_existing_sieve(self, existing_sieve, desired_length):
-        print(len(existing_sieve), desired_length)
-        tmp_sieve = existing_sieve + list(range(len(existing_sieve), desired_length))
-        for i in range(int(math.sqrt(len(tmp_sieve)))):
-            if tmp_sieve[i] != 0:
+        existing_sieve.extend([1] * (desired_length - len(existing_sieve)))
+        for i in range(int(math.sqrt(len(existing_sieve)))):
+            if existing_sieve[i] != 0:
                 j = 2 * i
-                while j < len(tmp_sieve):
-                    tmp_sieve[j] = 0
+                while j < len(existing_sieve):
+                    existing_sieve[j] = 0
                     j += i
-        return tmp_sieve
+        return existing_sieve
 
     def prime_sieve_helper(self, n):
         if n > 1000000:
@@ -54,8 +51,8 @@ class PrimeUtils:
         else:
             return self.in_mem_prime_sieve_helper(n)
 
-pu = PrimeUtils()
-
-print(pu.prime_sieve_helper(100007001)[1][10000001])
+    def primes_less_than(self, n):
+        ps = self.prime_sieve_helper(n)[:n]
+        return [x for x in range(len(ps)) if ps[x]]
 
 
